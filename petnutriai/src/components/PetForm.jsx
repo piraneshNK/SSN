@@ -1,5 +1,7 @@
-import { useState } from 'react';
-import { ChevronRight, ChevronLeft, Calendar, Activity, Info, Check, Leaf, Beef, AlertCircle } from 'lucide-react';
+import { useState, useEffect, useRef } from 'react';
+import { ChevronRight, ChevronLeft, Calendar, Activity, Info, Check, Leaf, Beef, AlertCircle, Search, Loader2 } from 'lucide-react';
+import { fetchBreeds, getAverageWeight } from '../services/dogApi';
+import { getBreedRisk } from '../data/breedRisks';
 
 const MULTIPLIERS = {
     dog: {
@@ -142,6 +144,12 @@ function calculateNutrition(profile) {
 export default function PetForm({ onComplete }) {
     const [formStep, setFormStep] = useState(1);
     const [lastSelectedCondition, setLastSelectedCondition] = useState(null);
+    const [breeds, setBreeds] = useState([]); // Store API breeds
+    const [filteredBreeds, setFilteredBreeds] = useState([]);
+    const [isBreedLoading, setIsBreedLoading] = useState(false);
+    const [showBreedDropdown, setShowBreedDropdown] = useState(false);
+    const [breedRiskAlert, setBreedRiskAlert] = useState(null); // Alert for specific breed logic
+
     const [form, setForm] = useState({
         petType: 'dog',
         name: '',
@@ -156,6 +164,65 @@ export default function PetForm({ onComplete }) {
         dietStyles: [],
         allergies: ''
     });
+
+    // Load Breeds on Mount
+    useEffect(() => {
+        const loadBreeds = async () => {
+            if (form.petType === 'dog') {
+                setIsBreedLoading(true);
+                const data = await fetchBreeds();
+                setBreeds(data);
+                setIsBreedLoading(false);
+            } else {
+                setBreeds([]); // Clear for cat
+            }
+        };
+        loadBreeds();
+    }, [form.petType]);
+
+    // Filter breeds when user types
+    const handleBreedChange = (e) => {
+        const val = e.target.value;
+        updateForm('breed', val);
+        if (val.length > 0 && breeds.length > 0) {
+            const matches = breeds.filter(b => b.name.toLowerCase().includes(val.toLowerCase())).slice(0, 5);
+            setFilteredBreeds(matches);
+            setShowBreedDropdown(true);
+        } else {
+            setShowBreedDropdown(false);
+        }
+    };
+
+    const selectBreed = (breed) => {
+        updateForm('breed', breed.name);
+        setShowBreedDropdown(false);
+
+        // Auto-Fill Logic
+        if (breed.weight) {
+            const avgWeight = getAverageWeight(breed.weight);
+            if (avgWeight) updateForm('weight', avgWeight);
+        }
+
+        // Activity Analysis
+        if (breed.temperament) {
+            const t = breed.temperament.toLowerCase();
+            if (t.includes('active') || t.includes('working') || t.includes('energetic')) {
+                updateForm('activity', 'high');
+            } else if (t.includes('calm') || t.includes('quiet')) {
+                updateForm('activity', 'low');
+            } else {
+                updateForm('activity', 'medium');
+            }
+        }
+
+        // Risk Analysis
+        const risk = getBreedRisk(breed.name);
+        if (risk) {
+            setBreedRiskAlert(risk);
+        } else {
+            setBreedRiskAlert(null);
+        }
+    };
 
     const updateForm = (field, value) => {
         setForm(prev => ({ ...prev, [field]: value }));
@@ -248,11 +315,51 @@ export default function PetForm({ onComplete }) {
                                 <label className="block text-sm font-medium text-gray-700 mb-1">Pet Name</label>
                                 <input type="text" className="input-field focus:ring-4 focus:ring-indigo-500/10" placeholder="e.g. Bella" value={form.name} onChange={e => updateForm('name', e.target.value)} />
                             </div>
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">Breed (Optional)</label>
-                                <input type="text" className="input-field" placeholder="e.g. Labrador" value={form.breed} onChange={e => updateForm('breed', e.target.value)} />
+
+                            {/* Smart Breed Autocomplete */}
+                            <div className="relative">
+                                <label className="block text-sm font-medium text-gray-700 mb-1 flex justify-between">
+                                    Breed (Optional)
+                                    {isBreedLoading && <Loader2 className="w-3 h-3 animate-spin text-gray-400" />}
+                                </label>
+                                <div className="relative">
+                                    <input
+                                        type="text"
+                                        className="input-field pr-8"
+                                        placeholder="Type to search..."
+                                        value={form.breed}
+                                        onChange={handleBreedChange}
+                                        onFocus={() => form.breed && setShowBreedDropdown(true)}
+                                    />
+                                    <Search className="absolute right-3 top-3 w-4 h-4 text-gray-400" />
+                                </div>
+                                {showBreedDropdown && filteredBreeds.length > 0 && (
+                                    <div className="absolute z-50 w-full mt-1 bg-white border border-gray-100 rounded-xl shadow-xl max-h-60 overflow-y-auto">
+                                        {filteredBreeds.map(b => (
+                                            <button
+                                                key={b.id}
+                                                onClick={() => selectBreed(b)}
+                                                className="w-full text-left px-4 py-3 hover:bg-gray-50 text-sm border-b border-gray-50 last:border-0"
+                                            >
+                                                <div className="font-bold text-gray-800">{b.name}</div>
+                                                <div className="text-xs text-gray-500">{b.weight} kg · {b.life_span}</div>
+                                            </button>
+                                        ))}
+                                    </div>
+                                )}
                             </div>
                         </div>
+
+                        {/* Breed Risk Alert */}
+                        {breedRiskAlert && (
+                            <div className="bg-blue-50 border border-blue-100 p-4 rounded-xl flex gap-3 animate-fade-in-up">
+                                <Info className="w-5 h-5 text-blue-600 flex-shrink-0" />
+                                <div className="text-xs text-blue-800">
+                                    <strong className="block mb-0.5">Breed Insight: {form.breed}</strong>
+                                    {breedRiskAlert.symptom} We'll adjust the diet to <strong>{breedRiskAlert.condition}</strong> logic.
+                                </div>
+                            </div>
+                        )}
 
                         <div className="grid grid-cols-2 gap-4">
                             <div>
