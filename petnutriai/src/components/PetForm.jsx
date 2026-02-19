@@ -1,7 +1,9 @@
 import { useState, useEffect, useRef } from 'react';
 import { ChevronRight, ChevronLeft, Calendar, Activity, Info, Check, Leaf, Beef, AlertCircle, Search, Loader2 } from 'lucide-react';
 import { fetchBreeds, getAverageWeight } from '../services/dogApi';
+import { fetchCatBreeds } from '../services/catApi';
 import { getBreedRisk } from '../data/breedRisks';
+import { analyzeBreedNutrition } from '../utils/breedNutritionEngine';
 
 const MULTIPLIERS = {
     dog: {
@@ -122,6 +124,28 @@ function calculateNutrition(profile) {
         carbsPct = 0.60;
     }
 
+    // Breed Specific Overrides (API First, Fallback to Static)
+    // 1. Check API Data (Smart Groups)
+    if (profile.selectedBreedData) {
+        const smartMacros = analyzeBreedNutrition(profile.selectedBreedData);
+        if (smartMacros) {
+            proteinPct = smartMacros.protein;
+            fatPct = smartMacros.fat;
+            // Recalculate carbs
+            carbsPct = parseFloat((1.0 - (proteinPct + fatPct)).toFixed(2));
+        }
+    }
+
+    // 2. Check Medical Exceptions (Dalmatian, etc.) - Takes Precedence
+    const breedRisk = getBreedRisk(profile.breed);
+    if (breedRisk && breedRisk.macros) {
+        // Only override if specific medical need implies it (optional, logic here assumes static list is 'medical overrides')
+        // For now, let's allow static list to Refine the API guess if present
+        proteinPct = breedRisk.macros.protein;
+        fatPct = breedRisk.macros.fat;
+        carbsPct = parseFloat((1.0 - (proteinPct + fatPct)).toFixed(2));
+    }
+
     const proteinG = Math.round((mer * proteinPct) / 4);
     const fatG = Math.round((mer * fatPct) / 9);
     const carbsG = Math.round((mer * carbsPct) / 4);
@@ -141,7 +165,7 @@ function calculateNutrition(profile) {
     };
 }
 
-export default function PetForm({ onComplete }) {
+export default function PetForm({ onComplete, location, setLocation }) {
     const [formStep, setFormStep] = useState(1);
     const [lastSelectedCondition, setLastSelectedCondition] = useState(null);
     const [breeds, setBreeds] = useState([]); // Store API breeds
@@ -149,6 +173,9 @@ export default function PetForm({ onComplete }) {
     const [isBreedLoading, setIsBreedLoading] = useState(false);
     const [showBreedDropdown, setShowBreedDropdown] = useState(false);
     const [breedRiskAlert, setBreedRiskAlert] = useState(null); // Alert for specific breed logic
+    const [breedImage, setBreedImage] = useState(null); // Image URL for verification
+    const [selectedBreedData, setSelectedBreedData] = useState(null); // Store full API object
+    const [showCountryDropdown, setShowCountryDropdown] = useState(false); // New local dropdown state
 
     const [form, setForm] = useState({
         petType: 'dog',
@@ -168,14 +195,15 @@ export default function PetForm({ onComplete }) {
     // Load Breeds on Mount
     useEffect(() => {
         const loadBreeds = async () => {
+            setIsBreedLoading(true);
+            let data = [];
             if (form.petType === 'dog') {
-                setIsBreedLoading(true);
-                const data = await fetchBreeds();
-                setBreeds(data);
-                setIsBreedLoading(false);
-            } else {
-                setBreeds([]); // Clear for cat
+                data = await fetchBreeds();
+            } else if (form.petType === 'cat') {
+                data = await fetchCatBreeds();
             }
+            setBreeds(data);
+            setIsBreedLoading(false);
         };
         loadBreeds();
     }, [form.petType]);
@@ -195,6 +223,8 @@ export default function PetForm({ onComplete }) {
 
     const selectBreed = (breed) => {
         updateForm('breed', breed.name);
+        setBreedImage(breed.image);
+        setSelectedBreedData(breed); // Save full data for nutrition engine
         setShowBreedDropdown(false);
 
         // Auto-Fill Logic
@@ -255,7 +285,8 @@ export default function PetForm({ onComplete }) {
             setFormStep(s => s + 1);
             setLastSelectedCondition(null); // Reset when changing steps
         } else {
-            const nutrition = calculateNutrition(form);
+            const profileWithData = { ...form, selectedBreedData };
+            const nutrition = calculateNutrition(profileWithData);
             const profileWithStage = { ...form, age: nutrition.lifeStage === 'Puppy/Kitten' ? (form.petType === 'dog' ? 'Puppy' : 'Kitten') : nutrition.lifeStage };
             onComplete(profileWithStage, nutrition);
         }
@@ -305,6 +336,50 @@ export default function PetForm({ onComplete }) {
             <div className="space-y-6 min-h-[300px]">
                 {formStep === 1 && (
                     <div className="space-y-5 animate-fade-in-up">
+                        {/* Country Selection */}
+                        <div className="relative z-50">
+                            <label className="block text-sm font-medium text-gray-700 mb-1">Your Location</label>
+                            <button
+                                type="button"
+                                onClick={() => setShowCountryDropdown(!showCountryDropdown)}
+                                className="w-full flex items-center justify-between px-4 py-3 bg-white border border-gray-200 rounded-xl hover:border-indigo-300 focus:outline-none focus:ring-4 focus:ring-indigo-500/10 transition-all text-left"
+                            >
+                                <span className="flex items-center gap-2 text-gray-700 font-medium">
+                                    <span className="text-xl">{location ? location.flag : '🌍'}</span>
+                                    {location ? location.country : 'Select Country (For Local Ingredients)'}
+                                </span>
+                                <ChevronRight className={`w-5 h-5 text-gray-400 transition-transform ${showCountryDropdown ? 'rotate-90' : ''}`} />
+                            </button>
+
+                            {showCountryDropdown && (
+                                <>
+                                    <div className="fixed inset-0 z-40" onClick={() => setShowCountryDropdown(false)}></div>
+                                    <div className="absolute top-full w-full mt-2 bg-white border border-gray-100 rounded-xl shadow-xl z-50 overflow-hidden animate-fade-in-up">
+                                        {[
+                                            { country: 'India', code: 'IN', flag: '🇮🇳' },
+                                            { country: 'USA', code: 'US', flag: '🇺🇸' },
+                                            { country: 'UK', code: 'GB', flag: '🇬🇧' }
+                                        ].map((opt) => (
+                                            <button
+                                                key={opt.code}
+                                                type="button"
+                                                onClick={(e) => {
+                                                    e.preventDefault();
+                                                    e.stopPropagation();
+                                                    setLocation(opt);
+                                                    setShowCountryDropdown(false);
+                                                }}
+                                                className={`w-full text-left px-4 py-3 flex items-center gap-3 transition-colors ${location?.code === opt.code ? 'bg-indigo-50 text-indigo-700 font-bold' : 'text-gray-700 hover:bg-gray-50'}`}
+                                            >
+                                                <span className="text-2xl">{opt.flag}</span>
+                                                <span className="font-medium">{opt.country}</span>
+                                            </button>
+                                        ))}
+                                    </div>
+                                </>
+                            )}
+                        </div>
+
                         <div className="grid grid-cols-2 gap-4">
                             <button onClick={() => updateForm('petType', 'dog')} className={`p-4 rounded-xl border-2 transition-all font-semibold text-center hover:scale-[1.02] active:scale-95 ${form.petType === 'dog' ? 'border-indigo-600 bg-indigo-50 text-indigo-700 ring-4 ring-indigo-500/10' : 'border-gray-200 hover:border-indigo-200 text-gray-600'}`}>🐶 Dog</button>
                             <button onClick={() => updateForm('petType', 'cat')} className={`p-4 rounded-xl border-2 transition-all font-semibold text-center hover:scale-[1.02] active:scale-95 ${form.petType === 'cat' ? 'border-indigo-600 bg-indigo-50 text-indigo-700 ring-4 ring-indigo-500/10' : 'border-gray-200 hover:border-indigo-200 text-gray-600'}`}>🐱 Cat</button>
@@ -350,13 +425,25 @@ export default function PetForm({ onComplete }) {
                             </div>
                         </div>
 
-                        {/* Breed Risk Alert */}
-                        {breedRiskAlert && (
-                            <div className="bg-blue-50 border border-blue-100 p-4 rounded-xl flex gap-3 animate-fade-in-up">
-                                <Info className="w-5 h-5 text-blue-600 flex-shrink-0" />
-                                <div className="text-xs text-blue-800">
-                                    <strong className="block mb-0.5">Breed Insight: {form.breed}</strong>
-                                    {breedRiskAlert.symptom} We'll adjust the diet to <strong>{breedRiskAlert.condition}</strong> logic.
+                        {/* Breed Risk Alert with Image */}
+                        {(breedRiskAlert || breedImage) && (
+                            <div className="bg-blue-50 border border-blue-100 p-4 rounded-xl flex gap-4 animate-fade-in-up items-start">
+                                {breedImage ? (
+                                    <img src={breedImage} alt={form.breed} className="w-24 h-24 object-cover rounded-lg border border-blue-200 shadow-sm bg-white flex-shrink-0" />
+                                ) : (
+                                    <Info className="w-6 h-6 text-blue-600 flex-shrink-0 mt-1" />
+                                )}
+                                <div>
+                                    <strong className="block text-blue-900 mb-1">{form.breed}</strong>
+                                    {breedRiskAlert ? (
+                                        <div className="text-sm text-blue-800">
+                                            {breedRiskAlert.symptom} We'll adjust the diet to <strong>{breedRiskAlert.condition}</strong> logic.
+                                        </div>
+                                    ) : (
+                                        <div className="text-sm text-blue-800">
+                                            Great choice! We've auto-adjusted the activity level based on typical {form.breed} temperament.
+                                        </div>
+                                    )}
                                 </div>
                             </div>
                         )}

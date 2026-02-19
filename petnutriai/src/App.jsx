@@ -45,6 +45,8 @@ function ProgressStepper({ currentStep }) {
     );
 }
 
+
+
 export default function App() {
     // Load initial state from localStorage if available
     const [showHome, setShowHome] = useState(() => JSON.parse(localStorage.getItem('pn_showHome')) ?? true);
@@ -52,6 +54,14 @@ export default function App() {
     const [petProfile, setPetProfile] = useState(() => JSON.parse(localStorage.getItem('pn_petProfile')) ?? null);
     const [nutrition, setNutrition] = useState(() => JSON.parse(localStorage.getItem('pn_nutrition')) ?? null);
     const [budget, setBudget] = useState(() => JSON.parse(localStorage.getItem('pn_budget')) ?? null);
+    const [generatedPlan, setGeneratedPlan] = useState(null);
+
+    const [location, setLocation] = useState(null); // Explicit manual selection
+    const [showLocationMenu, setShowLocationMenu] = useState(false);
+
+
+
+
 
     // Persist state changes
     useEffect(() => { localStorage.setItem('pn_showHome', JSON.stringify(showHome)); }, [showHome]);
@@ -59,6 +69,8 @@ export default function App() {
     useEffect(() => { localStorage.setItem('pn_petProfile', JSON.stringify(petProfile)); }, [petProfile]);
     useEffect(() => { localStorage.setItem('pn_nutrition', JSON.stringify(nutrition)); }, [nutrition]);
     useEffect(() => { localStorage.setItem('pn_budget', JSON.stringify(budget)); }, [budget]);
+
+
 
     const startPlan = () => {
         setShowHome(false);
@@ -105,6 +117,12 @@ export default function App() {
                                 <HomeIcon className="w-5 h-5" />
                             </button>
                         )}
+
+
+
+
+                        {/* Location Selector Moved to PetForm */}
+
                         <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-full bg-indigo-50 border border-indigo-100">
                             <Sparkles className="w-3.5 h-3.5 text-indigo-600" />
                             <span className="text-xs font-semibold text-indigo-700">AI Powered</span>
@@ -119,22 +137,66 @@ export default function App() {
                 ) : (
                     <div className="max-w-4xl mx-auto px-4 sm:px-6">
                         <ProgressStepper currentStep={step} />
+
+                        {/* Location Prompt Warning */}
+                        {!location && step === 4 && (
+                            <div className="mb-6 bg-amber-50 border border-amber-200 rounded-xl p-4 flex items-center justify-between text-amber-800 animate-pulse">
+                                <div className="flex items-center gap-3">
+                                    <span className="text-2xl">🌍</span>
+                                    <div>
+                                        <p className="font-bold">Select your location!</p>
+                                        <p className="text-sm opacity-80">We need this to find ingredients available near you.</p>
+                                    </div>
+                                </div>
+                                <button
+                                    onClick={() => setShowLocationMenu(true)}
+                                    className="px-4 py-2 bg-amber-100 hover:bg-amber-200 text-amber-900 rounded-lg font-semibold transition-colors"
+                                >
+                                    Choose Country
+                                </button>
+                            </div>
+                        )}
+
                         <div className="animate-fade-in-up">
                             {step === 1 && (
-                                <PetForm onComplete={(profile, nutr) => { setPetProfile(profile); setNutrition(nutr); setStep(2); }} />
+                                <PetForm
+                                    onComplete={(profile, nutr) => { setPetProfile(profile); setNutrition(nutr); setStep(2); }}
+                                    location={location}
+                                    setLocation={setLocation}
+                                />
                             )}
                             {step === 2 && nutrition && (
                                 <NutritionDashboard nutrition={nutrition} petProfile={petProfile} onNext={() => setStep(3)} onBack={() => setStep(1)} />
                             )}
                             {step === 3 && (
-                                <BudgetSelector petProfile={petProfile} onComplete={(b) => { setBudget(b); setStep(4); }} onBack={() => setStep(2)} />
+                                <BudgetSelector
+                                    petProfile={petProfile}
+                                    nutrition={nutrition}
+                                    location={location}
+                                    onComplete={(b) => { setBudget(b); setStep(4); }}
+                                    onBack={() => setStep(2)}
+                                />
                             )}
                             {step === 4 && (
-                                <MealPlan petProfile={petProfile} nutrition={nutrition} budget={budget} onNext={() => setStep(5)} onBack={() => setStep(3)} />
+                                <MealPlan
+                                    petProfile={petProfile}
+                                    nutrition={nutrition}
+                                    budget={budget}
+                                    location={location}
+                                    onPlanGenerated={setGeneratedPlan}
+                                    onNext={() => setStep(5)}
+                                    onBack={() => setStep(3)}
+                                />
                             )}
                             {step === 5 && (
-                                <ShoppingCart petProfile={petProfile} budget={budget} onBack={() => setStep(4)}
-                                    onReset={goHome} />
+                                <ShoppingCart
+                                    petProfile={petProfile}
+                                    budget={budget}
+                                    generatedPlan={generatedPlan}
+                                    location={location}
+                                    onBack={() => setStep(4)}
+                                    onReset={goHome}
+                                />
                             )}
                         </div>
                     </div>

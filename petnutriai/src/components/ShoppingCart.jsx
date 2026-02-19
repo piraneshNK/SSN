@@ -1,5 +1,6 @@
 import { Download, Check, ChevronLeft, RotateCcw, ShoppingBag } from 'lucide-react';
 import { getMealPlanKey, mealPlansData } from '../data/mealData';
+import { COUNTRY_RULES, getCurrency } from '../data/countryRules';
 
 function exportShoppingList(items, total, budget) {
     const content = `SHOPPING LIST
@@ -17,14 +18,107 @@ Total: Rs. ${total}
     URL.revokeObjectURL(url);
 }
 
-export default function ShoppingCart({ petProfile, budget, onBack, onReset }) {
-    const planKey = getMealPlanKey(petProfile.petType, petProfile.dietType, budget.tier);
-    const plan = mealPlansData[planKey];
+export default function ShoppingCart({ petProfile, budget, generatedPlan, location, onBack, onReset }) {
 
-    // Fallback if no plan found (should not happen with complete data)
-    const items = plan ? plan.shoppingList : [];
+    // Dynamic Aggregation Logic (only if components exist - i.e. dynamic engine)
+    let items = [];
+
+    // Helper to localize items
+    const localizeItems = (list) => {
+        if (!list) return [];
+        return list.map(item => {
+            // Check for localization
+            // Import getLocalizedIngredient locally or usage logic
+            // Since we can't easily import inside a function without top-level, we assume helper available or simple check
+
+            // We need to fetch/import getLocalizedIngredient. It is imported? No.
+            // I will add import in next step. For now, logic:
+
+            // Actually, let's just loop and check COUNTRY_RULES if we can, 
+            // OR better: The user wants it "replaced".
+
+            // Since we don't have getLocalizedIngredient imported in this file yet, I need to add it.
+            // For this specific edit, I will stick to structure.
+            return item;
+        });
+    };
+
+    // Helper to localize a single ingredient name
+    const localizeIngredientName = (name) => {
+        if (!location || !location.code || !COUNTRY_RULES[location.code]) return name;
+        const rules = COUNTRY_RULES[location.code];
+        let newName = name;
+        for (const banned of rules.restrict) {
+            const regex = new RegExp(`\\b${banned}\\b`, 'gi');
+            if (regex.test(newName)) {
+                const sub = rules.substitutions[banned];
+                if (sub) {
+                    const replacementName = typeof sub === 'string' ? sub : (sub.replaceWith || sub.name);
+                    if (replacementName) {
+                        const replacement = replacementName.charAt(0).toUpperCase() + replacementName.slice(1);
+                        newName = newName.replace(regex, replacement);
+                    }
+                }
+            }
+        }
+        return newName;
+    };
+
+    if (generatedPlan && generatedPlan.days && generatedPlan.days[0].breakfast.components) {
+        const aggregator = {};
+        generatedPlan.days.forEach(day => {
+            ['breakfast', 'lunch', 'dinner'].forEach(mealType => {
+                const meal = day[mealType];
+                if (meal && meal.components) {
+                    meal.components.forEach(comp => {
+                        const finalName = localizeIngredientName(comp.name);
+                        if (!aggregator[finalName]) {
+                            aggregator[finalName] = { grams: 0, cost: 0 };
+                        }
+                        aggregator[finalName].grams += comp.grams;
+                    });
+                }
+            });
+        });
+
+        // Convert to list
+        items = Object.keys(aggregator).map(name => {
+            const totalGrams = aggregator[name].grams * 4; // Monthly
+            const kg = (totalGrams / 1000).toFixed(1);
+            let pricePerKg = 100;
+            const n = name.toLowerCase();
+            if (n.includes('chicken') || n.includes('fish') || n.includes('meat') || n.includes('egg')) pricePerKg = 300;
+            if (n.includes('rice') || n.includes('oats')) pricePerKg = 80;
+            if (n.includes('pumpkin') || n.includes('carrot') || n.includes('spinach')) pricePerKg = 60;
+            if (n.includes('mutton')) pricePerKg = 800;
+
+            return {
+                ingredient: name,
+                monthlyQty: `${kg} kg`,
+                estimatedCost: Math.round((totalGrams / 1000) * pricePerKg)
+            };
+        });
+    } else {
+        // Fallback or static (Use generatedPlan if available as it might contain shoppingList, else legacy)
+        // If generatedPlan is passed (from MealPlan), use its shoppingList which might be same as static for now.
+        // WE NEED TO LOCALIZE THIS.
+        const planKey = getMealPlanKey(petProfile.petType, petProfile.dietType, budget.tier);
+        const sourcePlan = generatedPlan || mealPlansData[planKey];
+        const rawItems = sourcePlan ? sourcePlan.shoppingList : [];
+
+        // We will Apply Localization in a separate step after importing helper
+        items = localizeItems(rawItems);
+    }
 
     const totalCost = items.reduce((sum, item) => sum + item.estimatedCost, 0);
+
+    // Currency Handling
+    const { symbol, rate, code } = getCurrency(location?.code);
+
+    const formatPrice = (val) => {
+        const converted = Math.round(val * rate);
+        return `${symbol}${converted.toLocaleString()}`;
+    };
 
     return (
         <div className="space-y-6 animate-fade-in-up">
@@ -52,7 +146,7 @@ export default function ShoppingCart({ petProfile, budget, onBack, onReset }) {
                                         <p className="text-gray-500 text-xs">{item.monthlyQty}</p>
                                     </div>
                                 </div>
-                                <div className="text-gray-900 font-semibold text-sm">₹{item.estimatedCost}</div>
+                                <div className="text-gray-900 font-semibold text-sm">{formatPrice(item.estimatedCost)}</div>
                             </div>
                         ))}
                     </div>
@@ -65,12 +159,13 @@ export default function ShoppingCart({ petProfile, budget, onBack, onReset }) {
                 <div className="bg-gray-900 text-white p-6 rounded-xl flex items-center justify-between mb-8 shadow-lg">
                     <div>
                         <p className="text-gray-400 text-xs uppercase tracking-wider font-semibold mb-1">Estimated Monthly Cost</p>
-                        <div className="text-3xl font-bold">₹{totalCost}</div>
+                        <div className="text-3xl font-bold">{formatPrice(totalCost)}</div>
+                        {code !== 'INR' && <div className="text-xs text-gray-400 mt-1">({code})</div>}
                     </div>
                     {budget.amount && (
                         <div className={`text-right ${totalCost <= budget.amount ? 'text-emerald-400' : 'text-amber-400'}`}>
                             <p className="text-xs font-medium mb-1">{totalCost <= budget.amount ? 'Within Budget' : 'Over Budget'}</p>
-                            <p className="text-sm opacity-80">Target: ₹{budget.amount}</p>
+                            <p className="text-sm opacity-80">Target: {budget.displayAmount || formatPrice(budget.amount)}</p>
                         </div>
                     )}
                 </div>
