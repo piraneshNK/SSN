@@ -3,7 +3,6 @@
 **Tailored Nutrition. Happier Pets. Zero Guesswork.**  
 A next-generation pet nutrition application built with **React**, **Vite**, and **Tailwind CSS**. It combines veterinary science with modern UI to generate precise, budget-friendly meal plans for dogs, cats, rabbits, and hamsters.
 
-![PetNutriAI Home](./src/assets/homedog.jpeg)
 
 ---
 
