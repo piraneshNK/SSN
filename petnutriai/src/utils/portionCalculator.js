@@ -37,14 +37,48 @@ const RECIPES = {
             { name: 'Moonlight Meal', components: { meat: 0.85, carb: 0.0, veg: 0.15 } },
             { name: 'Rest & Digest', components: { meat: 0.8, carb: 0.05, veg: 0.15 } }
         ]
+    },
+    rabbit: {
+        breakfast: [
+            { name: 'Morning Hay', components: { meat: 0.0, carb: 0.8, veg: 0.2 } },
+            { name: 'Fresh Start', components: { meat: 0.0, carb: 0.7, veg: 0.3 } },
+            { name: 'Fiber Boost', components: { meat: 0.0, carb: 0.85, veg: 0.15 } }
+        ],
+        lunch: [
+            { name: 'Midday Greens', components: { meat: 0.0, carb: 0.5, veg: 0.5 } },
+            { name: 'Salad Bowl', components: { meat: 0.0, carb: 0.4, veg: 0.6 } },
+            { name: 'Crunch Time', components: { meat: 0.0, carb: 0.6, veg: 0.4 } }
+        ],
+        dinner: [
+            { name: 'Evening Forage', components: { meat: 0.0, carb: 0.7, veg: 0.3 } },
+            { name: 'Pellet Mix', components: { meat: 0.0, carb: 0.8, veg: 0.2 } },
+            { name: 'Light Supper', components: { meat: 0.0, carb: 0.75, veg: 0.25 } }
+        ]
+    },
+    hamster: {
+        breakfast: [
+            { name: 'Seed Medley', components: { meat: 0.1, carb: 0.7, veg: 0.2 } },
+            { name: 'Grain Start', components: { meat: 0.0, carb: 0.8, veg: 0.2 } },
+            { name: 'Power Oats', components: { meat: 0.1, carb: 0.8, veg: 0.1 } }
+        ],
+        lunch: [
+            { name: 'Fresh Forage', components: { meat: 0.05, carb: 0.6, veg: 0.35 } },
+            { name: 'Garden Crunch', components: { meat: 0.0, carb: 0.5, veg: 0.5 } },
+            { name: 'Nutty Lunch', components: { meat: 0.1, carb: 0.7, veg: 0.2 } }
+        ],
+        dinner: [
+            { name: 'Protein Boost', components: { meat: 0.2, carb: 0.6, veg: 0.2 } },
+            { name: 'Evening Feast', components: { meat: 0.15, carb: 0.7, veg: 0.15 } },
+            { name: 'Simple Seeds', components: { meat: 0.05, carb: 0.85, veg: 0.1 } }
+        ]
     }
 };
 
 // Available ingredients by category (Generic -> Key in ingredients.js)
 const PANTRY = {
-    meat: ['chicken', 'mutton', 'fish_rohu_katla', 'egg', 'chicken_liver', 'turkey', 'beef', 'pork', 'duck', 'fish_seer'],
-    carb: ['white_rice', 'brown_rice', 'oats', 'sweet_potato'], // Cats typically don't eat roti/dalia
-    veg: ['pumpkin', 'carrot', 'beans', 'spinach']
+    meat: ['chicken', 'mutton', 'fish_rohu_katla', 'egg', 'chicken_liver', 'turkey', 'beef', 'pork', 'duck', 'fish_seer', 'mealworms', 'crickets'], // Added insects for hamsters
+    carb: ['white_rice', 'brown_rice', 'oats', 'sweet_potato', 'millet', 'barley', 'seeds_mix', 'corn', 'timothy_hay', 'orchard_grass_hay', 'rabbit_pellets', 'high_fiber_pellets'], // Added Rabbit/Hamster carbs
+    veg: ['pumpkin', 'carrot', 'beans', 'spinach', 'cucumber', 'broccoli', 'peas', 'coriander_leaves', 'pear', 'carrot_tops'] // Rabbit favorites
 };
 
 /**

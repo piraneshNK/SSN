@@ -1,0 +1,169 @@
+{
+  "rabbit_breeds": [
+    {
+      "name": "New Zealand White",
+      "min_age_months": 2,
+      "max_age_months": 120,
+      "min_weight_g": 3500,
+      "max_weight_g": 5000,
+      "age_weight_ratio": {
+        "min_ratio": 1750,
+        "max_ratio": 5000
+      },
+      "daily_nutrients": {
+        "calories_kcal": 220,
+        "protein_g": 16,
+        "fat_g": 3,
+        "fiber_g": 22,
+        "water_ml": 150
+      },
+      "common_diseases": [
+        "GI Stasis",
+        "Obesity",
+        "Dental Disease"
+      ],
+      "food_recommendations": [
+        { "food": "Rabbit Pellets", "price_per_kg": 300 },
+        { "food": "Timothy Hay", "price_per_kg": 200 },
+        { "food": "Carrot", "price_per_kg": 20 },
+        { "food": "Spinach", "price_per_kg": 25 },
+        { "food": "Apple", "price_per_kg": 40 }
+      ]
+    },
+
+    {
+      "name": "Dutch Rabbit",
+      "min_age_months": 2,
+      "max_age_months": 96,
+      "min_weight_g": 2000,
+      "max_weight_g": 2500,
+      "age_weight_ratio": {
+        "min_ratio": 1000,
+        "max_ratio": 2500
+      },
+      "daily_nutrients": {
+        "calories_kcal": 180,
+        "protein_g": 14,
+        "fat_g": 2.5,
+        "fiber_g": 20,
+        "water_ml": 120
+      },
+      "common_diseases": [
+        "Malocclusion",
+        "Snuffles",
+        "Hairball Blockage"
+      ],
+      "food_recommendations": [
+        { "food": "Rabbit Pellets", "price_per_kg": 300 },
+        { "food": "Orchard Grass Hay", "price_per_kg": 220 },
+        { "food": "Cucumber", "price_per_kg": 15 },
+        { "food": "Coriander Leaves", "price_per_kg": 30 },
+        { "food": "Papaya", "price_per_kg": 35 }
+      ]
+    },
+
+    {
+      "name": "Holland Lop",
+      "min_age_months": 2,
+      "max_age_months": 84,
+      "min_weight_g": 1300,
+      "max_weight_g": 1800,
+      "age_weight_ratio": {
+        "min_ratio": 650,
+        "max_ratio": 1800
+      },
+      "daily_nutrients": {
+        "calories_kcal": 160,
+        "protein_g": 13,
+        "fat_g": 2,
+        "fiber_g": 18,
+        "water_ml": 110
+      },
+      "common_diseases": [
+        "Ear Infection",
+        "Dental Disease",
+        "Obesity"
+      ],
+      "food_recommendations": [
+        { "food": "Rabbit Pellets", "price_per_kg": 320 },
+        { "food": "Timothy Hay", "price_per_kg": 200 },
+        { "food": "Broccoli Leaves", "price_per_kg": 30 },
+        { "food": "Carrot Tops", "price_per_kg": 18 },
+        { "food": "Pear", "price_per_kg": 45 }
+      ]
+    },
+
+    {
+      "name": "Flemish Giant",
+      "min_age_months": 3,
+      "max_age_months": 144,
+      "min_weight_g": 6000,
+      "max_weight_g": 10000,
+      "age_weight_ratio": {
+        "min_ratio": 2000,
+        "max_ratio": 10000
+      },
+      "daily_nutrients": {
+        "calories_kcal": 350,
+        "protein_g": 18,
+        "fat_g": 4,
+        "fiber_g": 25,
+        "water_ml": 250
+      },
+      "common_diseases": [
+        "Joint Problems",
+        "Heart Stress",
+        "GI Stasis"
+      ],
+      "food_recommendations": [
+        { "food": "High Fiber Pellets", "price_per_kg": 350 },
+        { "food": "Timothy Hay", "price_per_kg": 200 },
+        { "food": "Bottle Gourd", "price_per_kg": 20 },
+        { "food": "Spinach", "price_per_kg": 25 },
+        { "food": "Banana (limited)", "price_per_kg": 50 }
+      ]
+    }
+  ],
+
+  "common_rabbit_diseases": [
+    "GI Stasis",
+    "Dental Disease",
+    "Snuffles",
+    "Obesity",
+    "Heat Stroke",
+    "Hairball Blockage",
+    "Ear Mites"
+  ],
+
+  "nutrient_guidelines": {
+    "minimum_daily": {
+      "calories_kcal": 140,
+      "protein_g": 12,
+      "fat_g": 1.5,
+      "fiber_g": 15,
+      "water_ml": 90
+    },
+    "maximum_daily": {
+      "calories_kcal": 400,
+      "protein_g": 20,
+      "fat_g": 5,
+      "fiber_g": 30,
+      "water_ml": 300
+    }
+  },
+
+  "global_food_price_list": [
+    { "food": "Rabbit Pellets", "price_per_kg": 300 },
+    { "food": "High Fiber Pellets", "price_per_kg": 350 },
+    { "food": "Timothy Hay", "price_per_kg": 200 },
+    { "food": "Orchard Grass Hay", "price_per_kg": 220 },
+    { "food": "Carrot", "price_per_kg": 20 },
+    { "food": "Spinach", "price_per_kg": 25 },
+    { "food": "Coriander Leaves", "price_per_kg": 30 },
+    { "food": "Cucumber", "price_per_kg": 15 },
+    { "food": "Apple", "price_per_kg": 40 },
+    { "food": "Papaya", "price_per_kg": 35 },
+    { "food": "Pear", "price_per_kg": 45 },
+    { "food": "Bottle Gourd", "price_per_kg": 20 }
+  ]
+}

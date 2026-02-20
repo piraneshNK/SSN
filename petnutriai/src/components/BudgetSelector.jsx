@@ -10,7 +10,8 @@ const TIERS = [
 ];
 
 export default function BudgetSelector({ petProfile, nutrition, location, onComplete, onBack }) {
-    const [selectedTier, setSelectedTier] = useState('balanced');
+    // Default to 'budget' for small pets (Hamster/Rabbit) as they have lower costs/different economy
+    const [selectedTier, setSelectedTier] = useState(['hamster', 'rabbit'].includes(petProfile?.petType) ? 'budget' : 'balanced');
     const [customAmount, setCustomAmount] = useState('');
     const [estimates, setEstimates] = useState({});
 

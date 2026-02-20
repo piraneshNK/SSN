@@ -1,0 +1,145 @@
+{
+  "hamster_breeds": [
+    {
+      "name": "Syrian Hamster",
+      "min_age_months": 2,
+      "max_age_months": 36,
+      "min_weight_g": 85,
+      "max_weight_g": 150,
+      "age_weight_ratio": {
+        "min_ratio": 42.5,
+        "max_ratio": 150
+      },
+      "daily_nutrients": {
+        "calories_kcal": 100,
+        "protein_g": 16,
+        "fat_g": 4,
+        "fiber_g": 5,
+        "water_ml": 30
+      },
+      "common_diseases": [
+        "Wet Tail",
+        "Diabetes",
+        "Respiratory Infection"
+      ],
+      "food_recommendations": [
+        { "food": "Hamster Pellets", "price_per_kg": 350 },
+        { "food": "Sunflower Seeds", "price_per_kg": 800 },
+        { "food": "Carrot (fresh)", "price_per_kg": 20 },
+        { "food": "Boiled Egg", "price_per_kg": 500 },
+        { "food": "Oats", "price_per_kg": 100 }
+      ]
+    },
+
+    {
+      "name": "Dwarf Campbell Russian Hamster",
+      "min_age_months": 2,
+      "max_age_months": 36,
+      "min_weight_g": 35,
+      "max_weight_g": 50,
+      "age_weight_ratio": {
+        "min_ratio": 17.5,
+        "max_ratio": 50
+      },
+      "daily_nutrients": {
+        "calories_kcal": 80,
+        "protein_g": 14,
+        "fat_g": 3,
+        "fiber_g": 4,
+        "water_ml": 25
+      },
+      "common_diseases": [
+        "Dental Disease",
+        "Diarrhea",
+        "Nasal Discharge"
+      ],
+      "food_recommendations": [
+        { "food": "Dwarf Hamster Pellets", "price_per_kg": 400 },
+        { "food": "Pumpkin Seeds", "price_per_kg": 700 },
+        { "food": "Cucumber (fresh)", "price_per_kg": 15 },
+        { "food": "Boiled Chicken", "price_per_kg": 450 },
+        { "food": "Millet Spray", "price_per_kg": 200 }
+      ]
+    },
+
+    {
+      "name": "Roborovski Hamster",
+      "min_age_months": 2,
+      "max_age_months": 36,
+      "min_weight_g": 20,
+      "max_weight_g": 25,
+      "age_weight_ratio": {
+        "min_ratio": 10,
+        "max_ratio": 25
+      },
+      "daily_nutrients": {
+        "calories_kcal": 70,
+        "protein_g": 12,
+        "fat_g": 2,
+        "fiber_g": 4,
+        "water_ml": 20
+      },
+      "common_diseases": [
+        "Skin Mites",
+        "Digestive Blockage",
+        "Injury from Falls"
+      ],
+      "food_recommendations": [
+        { "food": "Roborovski Pellets", "price_per_kg": 500 },
+        { "food": "Chia Seeds", "price_per_kg": 1100 },
+        { "food": "Bell Pepper (fresh)", "price_per_kg": 30 },
+        { "food": "Tofu (boiled)", "price_per_kg": 250 },
+        { "food": "Barley", "price_per_kg": 120 }
+      ]
+    }
+  ],
+
+  "common_hamster_diseases": [
+    "Wet Tail",
+    "Diabetes",
+    "Respiratory Infection",
+    "Dental Disease",
+    "Skin Mites",
+    "Digestive Blockage",
+    "Obesity",
+    "Tumors",
+    "Cold Stress",
+    "Malocclusion"
+  ],
+
+  "nutrient_guidelines": {
+    "minimum_daily": {
+      "calories_kcal": 65,
+      "protein_g": 10,
+      "fat_g": 2,
+      "fiber_g": 3,
+      "water_ml": 15
+    },
+    "maximum_daily": {
+      "calories_kcal": 120,
+      "protein_g": 22,
+      "fat_g": 8,
+      "fiber_g": 8,
+      "water_ml": 40
+    }
+  },
+
+  "global_food_price_list": [
+    { "food": "Hamster Pellets", "price_per_kg": 350 },
+    { "food": "Sunflower Seeds", "price_per_kg": 800 },
+    { "food": "Pumpkin Seeds", "price_per_kg": 700 },
+    { "food": "Chia Seeds", "price_per_kg": 1100 },
+    { "food": "Oats", "price_per_kg": 100 },
+    { "food": "Millet Spray", "price_per_kg": 200 },
+    { "food": "Whole Wheat", "price_per_kg": 180 },
+    { "food": "Buckwheat", "price_per_kg": 150 },
+    { "food": "Carrot (fresh)", "price_per_kg": 20 },
+    { "food": "Cucumber (fresh)", "price_per_kg": 15 },
+    { "food": "Apple (fresh)", "price_per_kg": 40 },
+    { "food": "Bell Pepper (fresh)", "price_per_kg": 30 },
+    { "food": "Boiled Egg", "price_per_kg": 500 },
+    { "food": "Boiled Chicken", "price_per_kg": 450 },
+    { "food": "Boiled Turkey", "price_per_kg": 480 },
+    { "food": "Tofu (boiled)", "price_per_kg": 250 }
+  ]
+}

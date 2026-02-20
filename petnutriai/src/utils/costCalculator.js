@@ -140,6 +140,54 @@ export const calculateMonthlyEstimate = (dailyCalories, tier, petType) => {
                 { id: 'pumpkin', pct: 0.20 }
             ];
         }
+    } else if (petType === 'rabbit') {
+        // Rabbit (Herbivore)
+        if (tier === 'budget' || tier === 'low') {
+            mix = [
+                { id: 'timothy_hay', pct: 0.60 },
+                { id: 'rabbit_pellets', pct: 0.20 },
+                { id: 'carrot', pct: 0.20 }
+            ];
+        } else if (tier === 'premium' || tier === 'high') {
+            mix = [
+                { id: 'orchard_grass_hay', pct: 0.50 },
+                { id: 'high_fiber_pellets', pct: 0.20 },
+                { id: 'coriander_leaves', pct: 0.15 },
+                { id: 'broccoli', pct: 0.15 }
+            ];
+        } else {
+            // Standard
+            mix = [
+                { id: 'timothy_hay', pct: 0.60 },
+                { id: 'rabbit_pellets', pct: 0.20 },
+                { id: 'spinach', pct: 0.20 }
+            ];
+        }
+    } else if (petType === 'hamster') {
+        // Hamster (Granivore)
+        if (tier === 'budget' || tier === 'low') {
+            mix = [
+                { id: 'millet', pct: 0.40 },
+                { id: 'corn', pct: 0.30 },
+                { id: 'carrot', pct: 0.20 },
+                { id: 'white_rice', pct: 0.10 } // Filler
+            ];
+        } else if (tier === 'premium' || tier === 'high') {
+            mix = [
+                { id: 'seeds_mix', pct: 0.50 }, // Expensive
+                { id: 'mealworms', pct: 0.20 }, // Very Expensive
+                { id: 'broccoli', pct: 0.15 },
+                { id: 'barley', pct: 0.15 }
+            ];
+        } else {
+            // Standard
+            mix = [
+                { id: 'millet', pct: 0.30 },
+                { id: 'seeds_mix', pct: 0.20 },
+                { id: 'beans', pct: 0.20 },
+                { id: 'corn', pct: 0.30 }
+            ];
+        }
     } else {
         // Cat - Carnivore (High Protein, varying sources)
         if (tier === 'budget' || tier === 'low') {

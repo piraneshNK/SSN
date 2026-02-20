@@ -1,9 +1,12 @@
 import { useState, useEffect, useRef } from 'react';
-import { ChevronRight, ChevronLeft, Calendar, Activity, Info, Check, Leaf, Beef, AlertCircle, Search, Loader2 } from 'lucide-react';
+import { ChevronRight, ChevronLeft, Calendar, Activity, Info, Check, Leaf, Beef, AlertCircle, Search, Loader2, Upload, X, Sparkles } from 'lucide-react';
 import { fetchBreeds, getAverageWeight } from '../services/dogApi';
 import { fetchCatBreeds } from '../services/catApi';
 import { getBreedRisk } from '../data/breedRisks';
 import { analyzeBreedNutrition } from '../utils/breedNutritionEngine';
+import { analyzeHealthRisks } from '../services/healthAI'; // New Service
+import hamsterBreeds from '../data/hamsterBreeds.json';
+import rabbitBreeds from '../data/rabbit.json'; // Direct import from source
 
 const MULTIPLIERS = {
     dog: {
@@ -15,6 +18,16 @@ const MULTIPLIERS = {
         low: 1.1,
         medium: 1.4,
         high: 1.7
+    },
+    hamster: {
+        low: 1.1, // Less active
+        medium: 1.3,
+        high: 1.5 // Wheel runner
+    },
+    rabbit: {
+        low: 1.1,
+        medium: 1.3,
+        high: 1.6
     }
 };
 
@@ -58,6 +71,28 @@ const DIET_ADVANTAGES = {
         icon: <Beef className="w-5 h-5 text-rose-500" />,
         color: "bg-rose-50 border-rose-100 text-rose-800"
     },
+    omnivore: { // Hamsters
+        title: "Granivore / Omnivore",
+        items: [
+            "Seeds & Grains Base",
+            "Fresh Vegetables",
+            "Insects / Protein Occasional",
+            "High Fiber Needs"
+        ],
+        icon: <Leaf className="w-5 h-5 text-amber-500" />,
+        color: "bg-amber-50 border-amber-100 text-amber-800"
+    },
+    herbivore: { // Rabbits
+        title: "Herbivore (High Fiber)",
+        items: [
+            "Unlimited Hay (80%)",
+            "Fresh Leafy Greens",
+            "Measured Pellets",
+            "NO Grains/Seeds"
+        ],
+        icon: <Leaf className="w-5 h-5 text-green-600" />,
+        color: "bg-green-50 border-green-100 text-green-800"
+    },
     veg: {
         title: "Plant-Based Benefits",
         items: [
@@ -72,7 +107,15 @@ const DIET_ADVANTAGES = {
 };
 
 function calculateNutrition(profile) {
-    const weight = parseFloat(profile.weight);
+    let weight = parseFloat(profile.weight);
+
+    // Normalization: If Hamster, weight is likely in Grams from user perception, but RER formula expects KG.
+    // However, for UX, if user selects "Hamster", we might ask for grams.
+    // Let's assume input is kg for consistency OR detect small values.
+    // Better: For Hamster, let's treat input as grams if > 10? No, standard is kg.
+    // Let's assume user inputs 0.15 kg for 150g hamster.
+    // RER for small mammals (Kleiber's law fits generally)
+
     const rer = 70 * Math.pow(weight, 0.75);
 
     let merFactor = MULTIPLIERS[profile.petType][profile.activity];
@@ -116,6 +159,22 @@ function calculateNutrition(profile) {
         proteinPct = 0.45;
         fatPct = 0.35;
         carbsPct = 0.20;
+    }
+
+    if (profile.petType === 'hamster') {
+        // Granivore/Omnivore: High Carb (Seeds), Moderate Protein, Low Fat
+        proteinPct = 0.18;
+        fatPct = 0.07;
+        carbsPct = 0.75;
+    }
+
+    if (profile.petType === 'rabbit') {
+        // Herbivore: Very High Fiber (Carb count in data), Low Protein, Very Low Fat
+        // Based on rabbit.json (220kcal: 16g P, 3g F, 22g Fiber)
+        // Protein ~ 25%, Fat ~ 10%, Carb/Fiber ~ 65%
+        proteinPct = 0.15;
+        fatPct = 0.05;
+        carbsPct = 0.80; // Mostly Fiber
     }
 
     if (profile.dietType === 'veg' && profile.petType === 'dog') {
@@ -189,8 +248,16 @@ export default function PetForm({ onComplete, location, setLocation }) {
         otherConditions: '', // New Field
         dietType: 'nonveg',
         dietStyles: [],
-        allergies: ''
+        dietType: 'nonveg',
+        dietStyles: [],
+        allergies: '',
+        prescriptionFile: null // New Field
     });
+
+    const [isAnalyzing, setIsAnalyzing] = useState(false);
+    const [healthAnalysis, setHealthAnalysis] = useState(null); // { avoid: [], reason: "" }
+
+
 
     // Load Breeds on Mount
     useEffect(() => {
@@ -201,6 +268,18 @@ export default function PetForm({ onComplete, location, setLocation }) {
                 data = await fetchBreeds();
             } else if (form.petType === 'cat') {
                 data = await fetchCatBreeds();
+            } else if (form.petType === 'hamster') {
+                data = hamsterBreeds; // Load from local JSON
+            } else if (form.petType === 'rabbit') {
+                // Parse rabbit.json
+                data = rabbitBreeds.rabbit_breeds.map(r => ({
+                    id: r.name.toLowerCase().replace(/ /g, '_'),
+                    name: r.name,
+                    weight: `${(r.min_weight_g / 1000).toFixed(1)} - ${(r.max_weight_g / 1000).toFixed(1)}`, // Store as string for UI
+                    life_span: `${Math.floor(r.min_age_months / 12)} - ${Math.floor(r.max_age_months / 12)} years`,
+                    temperament: "Gentle", // Static fallback
+                    image: null // Explicitly null to disable verification
+                }));
             }
             setBreeds(data);
             setIsBreedLoading(false);
@@ -223,7 +302,14 @@ export default function PetForm({ onComplete, location, setLocation }) {
 
     const selectBreed = (breed) => {
         updateForm('breed', breed.name);
-        setBreedImage(breed.image);
+
+        // Disable Image Verification for Hamster & Rabbit
+        if (form.petType === 'hamster' || form.petType === 'rabbit') {
+            setBreedImage(null);
+        } else {
+            setBreedImage(breed.image);
+        }
+
         setSelectedBreedData(breed); // Save full data for nutrition engine
         setShowBreedDropdown(false);
 
@@ -265,8 +351,24 @@ export default function PetForm({ onComplete, location, setLocation }) {
                 if (lastSelectedCondition === condition) setLastSelectedCondition(null);
                 return { ...prev, conditions: prev.conditions.filter(c => c !== condition) };
             }
+
+            // Conflict Logic: Prevent selecting opposites
+            const CONFLICTS = {
+                'Obesity': ['Underweight'],
+                'Underweight': ['Obesity'],
+                'High Energy': ['Post-Surgery', 'Joint Pain'], // High energy might conflict with restriction needs
+                'Post-Surgery': ['High Energy']
+            };
+
+            let newConditions = [...prev.conditions, condition];
+
+            // If new condition has conflicts, remove them
+            if (CONFLICTS[condition]) {
+                newConditions = newConditions.filter(c => !CONFLICTS[condition].includes(c));
+            }
+
             setLastSelectedCondition(condition);
-            return { ...prev, conditions: [...prev.conditions, condition] };
+            return { ...prev, conditions: newConditions };
         });
     };
 
@@ -276,6 +378,17 @@ export default function PetForm({ onComplete, location, setLocation }) {
             if (exists) return { ...prev, dietStyles: prev.dietStyles.filter(s => s !== style) };
             return { ...prev, dietStyles: [...prev.dietStyles, style] };
         });
+    };
+
+    const handleFileChange = (e) => {
+        const file = e.target.files[0];
+        if (file) {
+            updateForm('prescriptionFile', file);
+        }
+    };
+
+    const removePrescription = () => {
+        updateForm('prescriptionFile', null);
     };
 
     const handleNext = () => {
@@ -380,9 +493,11 @@ export default function PetForm({ onComplete, location, setLocation }) {
                             )}
                         </div>
 
-                        <div className="grid grid-cols-2 gap-4">
-                            <button onClick={() => updateForm('petType', 'dog')} className={`p-4 rounded-xl border-2 transition-all font-semibold text-center hover:scale-[1.02] active:scale-95 ${form.petType === 'dog' ? 'border-indigo-600 bg-indigo-50 text-indigo-700 ring-4 ring-indigo-500/10' : 'border-gray-200 hover:border-indigo-200 text-gray-600'}`}>🐶 Dog</button>
-                            <button onClick={() => updateForm('petType', 'cat')} className={`p-4 rounded-xl border-2 transition-all font-semibold text-center hover:scale-[1.02] active:scale-95 ${form.petType === 'cat' ? 'border-indigo-600 bg-indigo-50 text-indigo-700 ring-4 ring-indigo-500/10' : 'border-gray-200 hover:border-indigo-200 text-gray-600'}`}>🐱 Cat</button>
+                        <div className="grid grid-cols-4 gap-4">
+                            <button onClick={() => updateForm('petType', 'dog')} className={`px-2 py-4 rounded-xl border-2 transition-all font-semibold text-center hover:scale-[1.02] active:scale-95 ${form.petType === 'dog' ? 'border-indigo-600 bg-indigo-50 text-indigo-700 ring-4 ring-indigo-500/10' : 'border-gray-200 hover:border-indigo-200 text-gray-600'}`}>🐶 Dog</button>
+                            <button onClick={() => updateForm('petType', 'cat')} className={`px-2 py-4 rounded-xl border-2 transition-all font-semibold text-center hover:scale-[1.02] active:scale-95 ${form.petType === 'cat' ? 'border-indigo-600 bg-indigo-50 text-indigo-700 ring-4 ring-indigo-500/10' : 'border-gray-200 hover:border-indigo-200 text-gray-600'}`}>🐱 Cat</button>
+                            <button onClick={() => updateForm('petType', 'hamster')} className={`px-2 py-4 rounded-xl border-2 transition-all font-semibold text-center hover:scale-[1.02] active:scale-95 ${form.petType === 'hamster' ? 'border-amber-600 bg-amber-50 text-amber-700 ring-4 ring-amber-500/10' : 'border-gray-200 hover:border-indigo-200 text-gray-600'}`}>🐹 Hams</button>
+                            <button onClick={() => updateForm('petType', 'rabbit')} className={`px-2 py-4 rounded-xl border-2 transition-all font-semibold text-center hover:scale-[1.02] active:scale-95 ${form.petType === 'rabbit' ? 'border-green-600 bg-green-50 text-green-700 ring-4 ring-green-500/10' : 'border-gray-200 hover:border-indigo-200 text-gray-600'}`}>🐰 Rabit</button>
                         </div>
 
                         <div className="grid grid-cols-2 gap-4">
@@ -450,8 +565,19 @@ export default function PetForm({ onComplete, location, setLocation }) {
 
                         <div className="grid grid-cols-2 gap-4">
                             <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">Weight (kg)</label>
-                                <input type="number" className="input-field" placeholder="25" value={form.weight} onChange={e => updateForm('weight', e.target.value)} />
+                                <label className="block text-sm font-medium text-gray-700 mb-1">Weight ({['hamster', 'rabbit'].includes(form.petType) ? 'grams (mostly)' : 'kg'})</label>
+                                <input
+                                    type="number"
+                                    className="input-field"
+                                    placeholder={['hamster', 'rabbit'].includes(form.petType) ? "1500" : "25"}
+                                    value={['hamster', 'rabbit'].includes(form.petType) && form.weight ? form.weight * 1000 : form.weight}
+                                    onChange={e => {
+                                        let val = parseFloat(e.target.value);
+                                        // For Hamster and Rabbit, assume user inputs GRAMS, convert to KG
+                                        if (['hamster', 'rabbit'].includes(form.petType)) val = val / 1000;
+                                        updateForm('weight', val);
+                                    }}
+                                />
                             </div>
                             <div>
                                 <label className="block text-sm font-medium text-gray-700 mb-1">Age</label>
@@ -524,6 +650,94 @@ export default function PetForm({ onComplete, location, setLocation }) {
                                 onChange={e => updateForm('otherConditions', e.target.value)}
                             />
                         </div>
+
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-2">Upload Prescription (Optional)</label>
+
+                            {!form.prescriptionFile ? (
+                                <div className="border-2 border-dashed border-gray-300 rounded-xl p-6 text-center hover:bg-gray-50 transition-colors cursor-pointer relative">
+                                    <input
+                                        type="file"
+                                        accept="image/*,.pdf"
+                                        onChange={handleFileChange}
+                                        className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                                    />
+                                    <Upload className="w-8 h-8 text-gray-400 mx-auto mb-2" />
+                                    <p className="text-sm text-gray-600 font-medium">Click to Upload Prescription</p>
+                                    <p className="text-xs text-gray-400">JPG, PNG or PDF (Max 5MB)</p>
+                                </div>
+                            ) : (
+                                <div className="bg-indigo-50 border border-indigo-100 rounded-xl p-4 flex items-center justify-between">
+                                    <div className="flex items-center gap-3">
+                                        <div className="w-10 h-10 bg-indigo-100 rounded-lg flex items-center justify-center text-indigo-600">
+                                            <Upload className="w-5 h-5" />
+                                        </div>
+                                        <div>
+                                            <p className="text-sm font-bold text-indigo-900 truncate max-w-[200px]">{form.prescriptionFile.name}</p>
+                                            <p className="text-xs text-indigo-600">Uploaded successfully</p>
+                                        </div>
+                                    </div>
+                                    <button
+                                        onClick={removePrescription}
+                                        className="p-2 hover:bg-indigo-100 text-indigo-400 hover:text-indigo-600 rounded-full transition-colors"
+                                    >
+                                        <X className="w-5 h-5" />
+                                    </button>
+                                </div>
+                            )}
+                        </div>
+
+                        {/* Health AI Analysis Section */}
+                        {(form.conditions.length > 0 || form.otherConditions || form.prescriptionFile) && (
+                            <div className="pt-4 border-t border-gray-100">
+                                <div className="flex items-center justify-between mb-4">
+                                    <div>
+                                        <h4 className="text-sm font-bold text-gray-900 flex items-center gap-2">
+                                            <Sparkles className="w-4 h-4 text-indigo-500" /> Items to Avoid
+                                        </h4>
+                                        <p className="text-xs text-gray-500">Based on your pet's health conditions.</p>
+                                    </div>
+                                    <button
+                                        onClick={async () => {
+                                            if (isAnalyzing) return;
+                                            setIsAnalyzing(true);
+                                            setHealthAnalysis(null);
+                                            try {
+                                                const result = await analyzeHealthRisks(form.conditions, form.otherConditions, form.prescriptionFile);
+                                                if (result.avoid) setHealthAnalysis(result);
+                                            } catch (err) {
+                                                alert("AI Analysis Failed: " + err.message);
+                                            }
+                                            setIsAnalyzing(false);
+                                        }}
+                                        disabled={isAnalyzing}
+                                        className={`px-4 py-2 rounded-lg text-sm font-bold flex items-center gap-2 transition-all ${isAnalyzing ? 'bg-gray-100 text-gray-400 cursor-not-allowed' : 'bg-indigo-600 text-white hover:bg-indigo-700 shadow-md hover:shadow-lg'}`}
+                                    >
+                                        {isAnalyzing ? <Loader2 className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
+                                        {isAnalyzing ? 'Analyzing...' : 'Check Now'}
+                                    </button>
+                                </div>
+
+                                {healthAnalysis && (
+                                    <div className="bg-red-50 border border-red-100 rounded-xl p-4 animate-fade-in-up">
+                                        <div className="flex items-start gap-3 mb-2">
+                                            <AlertCircle className="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5" />
+                                            <div>
+                                                <h5 className="font-bold text-red-900 text-sm">Recommended Exclusions</h5>
+                                                <p className="text-xs text-red-700 opacity-80">{healthAnalysis.reason}</p>
+                                            </div>
+                                        </div>
+                                        <div className="flex flex-wrap gap-2 mt-2 ml-8">
+                                            {healthAnalysis.avoid.map((item, idx) => (
+                                                <span key={idx} className="px-3 py-1 bg-white border border-red-200 text-red-700 text-xs font-bold rounded-full shadow-sm">
+                                                    🚫 No {item}
+                                                </span>
+                                            ))}
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
+                        )}
                     </div>
                 )}
 
@@ -533,15 +747,32 @@ export default function PetForm({ onComplete, location, setLocation }) {
                         <div>
                             <label className="block text-sm font-medium text-gray-700 mb-3">Preferred Diet Type</label>
                             <div className="grid grid-cols-2 gap-4">
-                                <button onClick={() => updateForm('dietType', 'nonveg')} className={`p-6 rounded-xl border-2 transition-all text-center hover:scale-[1.02] active:scale-95 ${form.dietType === 'nonveg' ? 'border-rose-600 bg-rose-50 text-rose-700 ring-4 ring-rose-500/10' : 'border-gray-200 hover:border-rose-200 text-gray-600'}`}>
-                                    <span className="text-3xl block mb-2">🍖</span>
-                                    <span className="font-bold">Non-Vegetarian</span>
-                                </button>
-                                <button onClick={() => updateForm('dietType', 'veg')} className={`p-6 rounded-xl border-2 transition-all text-center hover:scale-[1.02] active:scale-95 ${form.dietType === 'veg' ? 'border-emerald-600 bg-emerald-50 text-emerald-700 ring-4 ring-emerald-500/10' : 'border-gray-200 hover:border-emerald-200 text-gray-600'}`}>
-                                    <span className="text-3xl block mb-2">🥦</span>
-                                    <span className="font-bold">Vegetarian</span>
-                                </button>
+                                {form.petType !== 'hamster' && form.petType !== 'rabbit' && (
+                                    <>
+                                        <button onClick={() => updateForm('dietType', 'nonveg')} className={`p-6 rounded-xl border-2 transition-all text-center hover:scale-[1.02] active:scale-95 ${form.dietType === 'nonveg' ? 'border-rose-600 bg-rose-50 text-rose-700 ring-4 ring-rose-500/10' : 'border-gray-200 hover:border-rose-200 text-gray-600'}`}>
+                                            <span className="text-3xl block mb-2">🍖</span>
+                                            <span className="font-bold">Non-Vegetarian</span>
+                                        </button>
+                                        <button onClick={() => updateForm('dietType', 'veg')} className={`p-6 rounded-xl border-2 transition-all text-center hover:scale-[1.02] active:scale-95 ${form.dietType === 'veg' ? 'border-emerald-600 bg-emerald-50 text-emerald-700 ring-4 ring-emerald-500/10' : 'border-gray-200 hover:border-emerald-200 text-gray-600'}`}>
+                                            <span className="text-3xl block mb-2">🥦</span>
+                                            <span className="font-bold">Vegetarian</span>
+                                        </button>
+                                    </>
+                                )}
+                                {form.petType === 'hamster' && (
+                                    <button onClick={() => updateForm('dietType', 'omnivore')} className={`col-span-2 p-6 rounded-xl border-2 transition-all text-center hover:scale-[1.02] active:scale-95 ${form.dietType === 'omnivore' || true ? 'border-amber-600 bg-amber-50 text-amber-700 ring-4 ring-amber-500/10' : 'border-gray-200'}`}>
+                                        <span className="text-3xl block mb-2">🌾</span>
+                                        <span className="font-bold">Omnivore / Granivore</span>
+                                    </button>
+                                )}
+                                {form.petType === 'rabbit' && (
+                                    <button onClick={() => updateForm('dietType', 'herbivore')} className={`col-span-2 p-6 rounded-xl border-2 transition-all text-center hover:scale-[1.02] active:scale-95 ${form.dietType === 'herbivore' || true ? 'border-green-600 bg-green-50 text-green-700 ring-4 ring-green-500/10' : 'border-gray-200'}`}>
+                                        <span className="text-3xl block mb-2">🌿</span>
+                                        <span className="font-bold">Herbivore (Hay & Greens)</span>
+                                    </button>
+                                )}
                             </div>
+
 
                             {/* Dynamic Diet Info Card */}
                             <div className={`mt-4 rounded-xl border p-5 flex gap-4 ${DIET_ADVANTAGES[form.dietType].color}`}>

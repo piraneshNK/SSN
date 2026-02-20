@@ -1,0 +1,47 @@
+[
+    {
+        "id": "syrian",
+        "name": "Syrian Hamster",
+        "weight": "0.12 - 0.15",
+        "life_span": "2 - 3 years",
+        "temperament": "Solitary, docile, handleable",
+        "origin": "Syria",
+        "image": "https://upload.wikimedia.org/wikipedia/commons/thumb/8/82/Golden_Hamster_standing.jpg/440px-Golden_Hamster_standing.jpg"
+    },
+    {
+        "id": "campbells",
+        "name": "Campbell's Dwarf Hamster",
+        "weight": "0.04 - 0.06",
+        "life_span": "1.5 - 2 years",
+        "temperament": "Social, active, nippy if scared",
+        "origin": "Central Asia",
+        "image": "https://upload.wikimedia.org/wikipedia/commons/thumb/d/d3/Phodopus_campbelli_2.jpg/440px-Phodopus_campbelli_2.jpg"
+    },
+    {
+        "id": "winter_white",
+        "name": "Winter White Dwarf Hamster",
+        "weight": "0.04 - 0.06",
+        "life_span": "1.5 - 2 years",
+        "temperament": "Social, sweet, changes coat color",
+        "origin": "Siberia",
+        "image": "https://upload.wikimedia.org/wikipedia/commons/thumb/2/23/Dzungarischer_Zwerghamster.JPG/440px-Dzungarischer_Zwerghamster.JPG"
+    },
+    {
+        "id": "roborovski",
+        "name": "Roborovski Hamster",
+        "weight": "0.02 - 0.03",
+        "life_span": "3 - 3.5 years",
+        "temperament": "Fast, energetic, look-but-don't-touch",
+        "origin": "Mongolia",
+        "image": "https://upload.wikimedia.org/wikipedia/commons/thumb/4/47/Roborovski_Shing.jpg/440px-Roborovski_Shing.jpg"
+    },
+    {
+        "id": "chinese",
+        "name": "Chinese Hamster",
+        "weight": "0.03 - 0.045",
+        "life_span": "2 - 3 years",
+        "temperament": "Agile, climber, slightly timid",
+        "origin": "China",
+        "image": "https://upload.wikimedia.org/wikipedia/commons/thumb/c/cd/Cricetulus_griseus_male.jpg/440px-Cricetulus_griseus_male.jpg"
+    }
+]
