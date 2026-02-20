@@ -86,11 +86,13 @@ petnutriai/
 │   │   └── breedRisks.js        # Hardcoded medical predispositions (e.g., Dalmatians & Purines).
 │   ├── utils/
 │   │   └── costCalculator.js    # Utility for estimating monthly expenses.
+│   └── services/
+│       └── healthAI.js          # Offline Health Engine
 ```
 
 ---
 
-## � Installation Guide
+## 📦 Installation Guide
 
 Ready to run precise nutrition plans locally?
 
@@ -132,4 +134,4 @@ Free to use, modify, and distribute with attribution.
 
 ---
 
-**Built with 💙 by [Your Name/Team]**
+**Built with 💙 by Thunderbolts**
