@@ -217,8 +217,10 @@ export const generateDailyPlan = (petProfile, nutrition, location, activeDayInde
         totalProtein += dayPlan[mealType].protein;
     });
 
+    const DAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+
     return {
-        day: `Day ${activeDayIndex + 1}`,
+        day: DAYS[activeDayIndex % 7],
         ...dayPlan
     };
 };

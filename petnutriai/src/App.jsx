@@ -6,7 +6,13 @@ import NutritionDashboard from './components/NutritionDashboard';
 import BudgetSelector from './components/BudgetSelector';
 import MealPlan from './components/MealPlan';
 import ShoppingCart from './components/ShoppingCart';
-import { PawPrint, Sparkles, Home as HomeIcon } from 'lucide-react';
+import BannedBreedWarning from './components/BannedBreedWarning';
+import Login from './components/auth/Login';
+import Register from './components/auth/Register';
+import Dashboard from './components/Dashboard';
+import { useAuth } from './context/AuthContext';
+import { savePetProfile } from './services/userService';
+import { PawPrint, Sparkles, Home as HomeIcon, User, LayoutDashboard, CloudIcon } from 'lucide-react';
 
 const STEPS = [
     { id: 1, short: 'Profile' },
@@ -59,6 +65,10 @@ export default function App() {
     const [location, setLocation] = useState(null); // Explicit manual selection
     const [showLocationMenu, setShowLocationMenu] = useState(false);
 
+    const { currentUser } = useAuth();
+    const [authView, setAuthView] = useState(null); // 'login', 'register', 'dashboard'
+    const [savedToCloud, setSavedToCloud] = useState(false); // show save indicator
+
 
 
 
@@ -95,6 +105,7 @@ export default function App() {
         setNutrition(null);
         setBudget(null);
         setStep(1);
+        setAuthView(null);
     };
 
     return (
@@ -112,14 +123,30 @@ export default function App() {
                     </button>
 
                     <div className="flex items-center gap-4">
-                        {!showHome && (
+                        {/* Auth Buttons */}
+                        {currentUser ? (
+                            <button
+                                onClick={() => setAuthView(v => v === 'dashboard' ? null : 'dashboard')}
+                                className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${authView === 'dashboard' ? 'bg-indigo-100 text-indigo-700' : 'text-gray-600 hover:text-indigo-600 hover:bg-gray-50'}`}
+                            >
+                                <LayoutDashboard className="w-4 h-4" />
+                                <span className="hidden sm:inline">Dashboard</span>
+                            </button>
+                        ) : (
+                            <button
+                                onClick={() => setAuthView('login')}
+                                className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-medium text-gray-600 hover:text-indigo-600 hover:bg-gray-50 transition-colors"
+                            >
+                                <User className="w-4 h-4" />
+                                <span className="hidden sm:inline">Sign In</span>
+                            </button>
+                        )}
+
+                        {!showHome && !authView && (
                             <button onClick={goHome} className="p-2 text-gray-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors" title="Home">
                                 <HomeIcon className="w-5 h-5" />
                             </button>
                         )}
-
-
-
 
                         {/* Location Selector Moved to PetForm */}
 
@@ -131,11 +158,45 @@ export default function App() {
                 </div>
             </header>
 
-            <main className="pb-16 pt-8">
-                {showHome ? (
+            <main className="pb-16 pt-8 relative">
+                {/* Auth Modals */}
+                {(authView === 'login' || authView === 'register') && (
+                    <div className="fixed inset-0 z-[60] bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 animate-fade-in">
+                        <div className="w-full max-w-md relative">
+                            {authView === 'login' ? (
+                                <Login
+                                    onSwitchToRegister={() => setAuthView('register')}
+                                    onLoginSuccess={() => setAuthView(null)} // Close modal to stay on current page
+                                    onCancel={() => setAuthView(null)}
+                                />
+                            ) : (
+                                <Register
+                                    onSwitchToLogin={() => setAuthView('login')}
+                                    onRegisterSuccess={() => setAuthView(null)} // Close modal to stay on current page
+                                    onCancel={() => setAuthView(null)}
+                                />
+                            )}
+                        </div>
+                    </div>
+                )}
+
+                {authView === 'dashboard' ? (
+                    <Dashboard
+                        onStartNew={() => { setAuthView(null); startPlan(); }}
+                        onResume={(savedPet) => {
+                            setAuthView(null);
+                            setShowHome(false);
+                            setPetProfile(savedPet);
+                            setStep(1); // Review profile first
+                        }}
+                    />
+                ) : showHome ? (
                     <Home onStart={startPlan} />
                 ) : (
                     <div className="max-w-4xl mx-auto px-4 sm:px-6">
+                        {/* Persistent Banned Breed Warning */}
+                        <BannedBreedWarning petProfile={petProfile} location={location} />
+
                         <ProgressStepper currentStep={step} />
 
                         {/* Location Prompt Warning */}
@@ -160,7 +221,21 @@ export default function App() {
                         <div className="animate-fade-in-up">
                             {step === 1 && (
                                 <PetForm
-                                    onComplete={(profile, nutr) => { setPetProfile(profile); setNutrition(nutr); setStep(2); }}
+                                    onComplete={async (profile, nutr) => {
+                                        setPetProfile(profile);
+                                        setNutrition(nutr);
+                                        setStep(2);
+                                        // Auto-save to RTDB if logged in
+                                        if (currentUser) {
+                                            try {
+                                                await savePetProfile(currentUser.uid, profile);
+                                                setSavedToCloud(true);
+                                                setTimeout(() => setSavedToCloud(false), 4000);
+                                            } catch (e) {
+                                                console.error('Auto-save failed:', e);
+                                            }
+                                        }
+                                    }}
                                     location={location}
                                     setLocation={setLocation}
                                 />

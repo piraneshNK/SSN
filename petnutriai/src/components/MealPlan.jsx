@@ -1,7 +1,9 @@
 import { useState, useEffect, useRef } from 'react';
-import { ChevronLeft, ChevronRight, Calendar, Download, Eye, Table, Sparkles, Info } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Calendar, Download, Eye, Table, Sparkles, Info, Save, Check, Loader2 } from 'lucide-react';
 import { mealPlansData, getMealPlanKey } from '../data/mealData';
 import { COUNTRY_RULES } from '../data/countryRules';
+import { useAuth } from '../context/AuthContext';
+import { savePetProfile } from '../services/userService';
 
 const MEAL_COLORS = {
     breakfast: { label: 'Breakfast', bg: 'bg-amber-50', border: 'border-amber-100', text: 'text-amber-800', badge: 'bg-amber-100 text-amber-700' },
@@ -86,6 +88,31 @@ export default function MealPlan({ petProfile, nutrition, budget, location, onNe
     const [viewMode, setViewMode] = useState('card');
     const [planData, setPlanData] = useState(null);
 
+    // Auth & Save State
+    const { currentUser } = useAuth();
+    const [isSaving, setIsSaving] = useState(false);
+    const [saveStatus, setSaveStatus] = useState(null);
+
+    const handleSave = async () => {
+        if (!currentUser) return;
+        setIsSaving(true);
+        try {
+            await savePetProfile(currentUser.uid, {
+                ...petProfile,
+                nutrition,
+                budget,
+                location, // Save location context too
+                planData // Optionally save the generated plan structure
+            });
+            setSaveStatus('success');
+            setTimeout(() => setSaveStatus(null), 3000);
+        } catch (err) {
+            console.error(err);
+            setSaveStatus('error');
+        }
+        setIsSaving(false);
+    };
+
     // Dynamic Plan Generation
     useEffect(() => {
         if (petProfile && nutrition && budget) {
@@ -129,6 +156,18 @@ export default function MealPlan({ petProfile, nutrition, budget, location, onNe
                         </p>
                     </div>
                     <div className="flex items-center gap-2">
+                        {currentUser && (
+                            <button
+                                onClick={handleSave}
+                                disabled={isSaving || saveStatus === 'success'}
+                                className={`btn-secondary px-3 py-2 text-xs flex items-center gap-1.5 shadow-sm transition-all ${saveStatus === 'success' ? 'bg-emerald-50 text-emerald-600 border-emerald-200' : 'text-gray-600'}`}
+                            >
+                                {isSaving ? <Loader2 className="w-4 h-4 animate-spin" /> :
+                                    saveStatus === 'success' ? <Check className="w-4 h-4" /> :
+                                        <Save className="w-4 h-4" />}
+                                {saveStatus === 'success' ? 'Saved!' : 'Save Plan'}
+                            </button>
+                        )}
                         <button onClick={() => setViewMode(v => v === 'card' ? 'table' : 'card')} className="btn-secondary px-3 py-2 text-xs text-gray-600 flex items-center gap-1.5 shadow-sm">
                             {viewMode === 'card' ? <Table className="w-4 h-4" /> : <Eye className="w-4 h-4" />} {viewMode === 'card' ? 'Table View' : 'Card View'}
                         </button>

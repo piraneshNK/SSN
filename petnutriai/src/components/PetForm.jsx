@@ -7,6 +7,7 @@ import { analyzeBreedNutrition } from '../utils/breedNutritionEngine';
 import { analyzeHealthRisks } from '../services/healthAI'; // New Service
 import hamsterBreeds from '../data/hamsterBreeds.json';
 import rabbitBreeds from '../data/rabbit.json'; // Direct import from source
+import { BANNED_IN_INDIA, BANNED_IN_UK, BANNED_CATS_IN_INDIA, RESTRICTED_CATS_IN_INDIA } from '../data/bannedBreeds';
 
 const MULTIPLIERS = {
     dog: {
@@ -235,6 +236,7 @@ export default function PetForm({ onComplete, location, setLocation }) {
     const [breedImage, setBreedImage] = useState(null); // Image URL for verification
     const [selectedBreedData, setSelectedBreedData] = useState(null); // Store full API object
     const [showCountryDropdown, setShowCountryDropdown] = useState(false); // New local dropdown state
+    const [bannedAlert, setBannedAlert] = useState(null); // New Banned Alert State
 
     const [form, setForm] = useState({
         petType: 'dog',
@@ -286,6 +288,41 @@ export default function PetForm({ onComplete, location, setLocation }) {
         };
         loadBreeds();
     }, [form.petType]);
+
+    // Watch for Breed + Location changes to trigger Ban Alert
+    useEffect(() => {
+        if (form.petType === 'dog' && form.breed && location) {
+            let isBanned = false;
+            let countryName = '';
+
+            if (location.country === 'India') {
+                isBanned = BANNED_IN_INDIA.some(b => form.breed.toLowerCase().includes(b.toLowerCase()));
+                countryName = 'India';
+            } else if (location.country === 'UK') {
+                isBanned = BANNED_IN_UK.some(b => form.breed.toLowerCase().includes(b.toLowerCase()));
+                countryName = 'the UK';
+            }
+
+            if (isBanned) {
+                setBannedAlert(`This dog breed is restricted/banned in ${countryName}.`);
+            } else {
+                setBannedAlert(null);
+            }
+        } else if (form.petType === 'cat' && form.breed && location && location.country === 'India') {
+            const isBengal = BANNED_CATS_IN_INDIA.some(b => form.breed.toLowerCase().includes(b.toLowerCase()));
+            const isSavannah = RESTRICTED_CATS_IN_INDIA.some(b => form.breed.toLowerCase().includes(b.toLowerCase()));
+
+            if (isBengal) {
+                setBannedAlert("This cat breed is banned in India (Wild Life Protection Act).");
+            } else if (isSavannah) {
+                setBannedAlert("Not officially banned, but check local Forestry Rules.");
+            } else {
+                setBannedAlert(null);
+            }
+        } else {
+            setBannedAlert(null);
+        }
+    }, [form.breed, location, form.petType]);
 
     // Filter breeds when user types
     const handleBreedChange = (e) => {
@@ -541,23 +578,33 @@ export default function PetForm({ onComplete, location, setLocation }) {
                         </div>
 
                         {/* Breed Risk Alert with Image */}
-                        {(breedRiskAlert || breedImage) && (
-                            <div className="bg-blue-50 border border-blue-100 p-4 rounded-xl flex gap-4 animate-fade-in-up items-start">
+                        {(breedRiskAlert || breedImage || bannedAlert) && (
+                            <div className={`p-4 rounded-xl flex gap-4 animate-fade-in-up items-start border ${bannedAlert ? 'bg-red-50 border-red-100' : 'bg-blue-50 border-blue-100'}`}>
                                 {breedImage ? (
                                     <img src={breedImage} alt={form.breed} className="w-24 h-24 object-cover rounded-lg border border-blue-200 shadow-sm bg-white flex-shrink-0" />
                                 ) : (
-                                    <Info className="w-6 h-6 text-blue-600 flex-shrink-0 mt-1" />
+                                    <Info className={`w-6 h-6 flex-shrink-0 mt-1 ${bannedAlert ? 'text-red-600' : 'text-blue-600'}`} />
                                 )}
                                 <div>
-                                    <strong className="block text-blue-900 mb-1">{form.breed}</strong>
+                                    <strong className={`block mb-1 ${bannedAlert ? 'text-red-900' : 'text-blue-900'}`}>{form.breed}</strong>
+
+                                    {bannedAlert && (
+                                        <div className="text-sm text-red-800 mb-2 font-bold flex items-center gap-2">
+                                            <AlertCircle className="w-4 h-4" />
+                                            {bannedAlert}
+                                        </div>
+                                    )}
+
                                     {breedRiskAlert ? (
                                         <div className="text-sm text-blue-800">
                                             {breedRiskAlert.symptom} We'll adjust the diet to <strong>{breedRiskAlert.condition}</strong> logic.
                                         </div>
                                     ) : (
-                                        <div className="text-sm text-blue-800">
-                                            Great choice! We've auto-adjusted the activity level based on typical {form.breed} temperament.
-                                        </div>
+                                        !bannedAlert && (
+                                            <div className="text-sm text-blue-800">
+                                                Great choice! We've auto-adjusted the activity level based on typical {form.breed} temperament.
+                                            </div>
+                                        )
                                     )}
                                 </div>
                             </div>
